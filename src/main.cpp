@@ -176,6 +176,11 @@ void UpdateServer()
 	//LOG("vel: " << player1Vel.y);
 	//la posicion del jugador 2 se actualiza con lo que envía el cliente
 
+	//calcular el movimiento de la pelota
+	ballVel = { 50,50 };
+	ballPos.x += ballVel.x * GetFrameTime();
+	ballPos.y += ballVel.y * GetFrameTime();
+
 	//enviar al cliente la posición del jugador 1 y la bola
 	if( remoteAddress != nullptr)
 	{
