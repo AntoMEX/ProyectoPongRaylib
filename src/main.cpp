@@ -12,6 +12,8 @@
 #define PORT 7777
 #define BUFFLEN 256
 
+#include "raymath.h"
+
 enum EAPPState
 {
 	SERVER, CLIENT, MENU
@@ -41,6 +43,7 @@ Vector2 player1Pos, player1Vel,  player2Pos, player2Vel, ballPos, ballVel;
 //velocidad deseada, se establece con los inputs
 Vector2 player1DesVel, player2DesVel;
 
+//Puntuación y radio
 int score1 = 0;
 int score2 = 0;
 const float ballRadius = 20.0f;
@@ -132,6 +135,8 @@ void CreateServer()
 	player2Vel = { 0, 0 };
 	ballPos = { (float)GetScreenWidth() / 2, (float)GetScreenHeight() / 2 };
 
+	score1 = score2 = 0;
+
 	LOG("sizeof sockaddr_in: " << network->sizeOfsockaddr_in());
 }
 
@@ -186,10 +191,33 @@ void UpdateServer()
 	ballPos.x += ballVel.x * GetFrameTime();
 	ballPos.y += ballVel.y * GetFrameTime();
 
+
+	// Rebote en techo y suelo
+	if (ballPos.y - ballRadius <= 0 || ballPos.y + ballRadius >= GetScreenHeight()) {
+		ballVel.y *= -1;
+	}
+
+	//Rebote contra palas
+	Rectangle p1 = { player1Pos.x, player1Pos.y, (float)playerWidth, (float)playerHeight };
+	Rectangle p2 = { player2Pos.x, player2Pos.y, (float)playerWidth, (float)playerHeight };
+
+	if (CheckCollisionCircleRec(ballPos, ballRadius, p1) && ballVel.x < 0) ballVel.x *= -1;
+	if (CheckCollisionCircleRec(ballPos, ballRadius, p2) && ballVel.x > 0) ballVel.x *= -1;
+
+	//Puntos al golpear paredes verticales (sin reset de pelota)
+	if (ballPos.x - ballRadius <= 0) {
+		score2++;
+		ballVel.x *= -1;
+	}
+	else if (ballPos.x + ballRadius >= GetScreenWidth()) {
+		score1++;
+		ballVel.x *= -1;
+	}
+
 	//enviar al cliente la posición del jugador 1 y la bola
 	if( remoteAddress != nullptr)
 	{
-		sprintf(buffer, "P1,%f,%f,%f", ballPos.x, ballPos.y, player1Pos.y);
+		sprintf(buffer, "P1,%.2f,%.2f,%.2f,%d,%d", ballPos.x, ballPos.y, player1Pos.y, score1, score2);
 		if (!network->sendTo(socket, buffer, remoteAddress))
 		{
 			LOG("Error al enviar datos al cliente");
@@ -201,7 +229,6 @@ void UpdateServer()
 		LOG("remote address null, cliente no conectado");
 	}
 }
-
 
 void CreateClient()
 {
@@ -244,6 +271,10 @@ void UpdateClient()
 			ballPos.y = atof(token);
 			token = strtok(nullptr, ","); // saltar y
 			player1Pos.y = atof(token);
+			token = strtok(nullptr, ",");
+			score1 = atoi(token);
+			token = strtok(nullptr, ",");
+			score2 = atoi(token);
 		}
 	}
 
@@ -296,6 +327,12 @@ void DrawClient()
 	//bola
 	DrawCircle(ballPos.x, ballPos.y, 20, RAYWHITE);
 	DrawText("Cliente", 50, 10, 20, DARKGRAY);
+
+	//Mostrar puntuaciones en cliente
+	DrawText(TextFormat("%02d", score1),
+		GetScreenWidth() / 4 - 20, 20, 40, RAYWHITE);
+	DrawText(TextFormat("%02d", score2),
+		GetScreenWidth() * 3 / 4 - 20, 20, 40, RAYWHITE);
 
 	//mostrar mensaje misc
 	if( screenMsg!= nullptr && screenMsg[0] != '\0' )
