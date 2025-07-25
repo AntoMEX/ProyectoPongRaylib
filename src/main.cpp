@@ -41,6 +41,11 @@ Vector2 player1Pos, player1Vel,  player2Pos, player2Vel, ballPos, ballVel;
 //velocidad deseada, se establece con los inputs
 Vector2 player1DesVel, player2DesVel;
 
+int score1 = 0;
+int score2 = 0;
+const float ballRadius = 20.0f;
+
+
 int main ()
 {
 	SetConfigFlags(FLAG_VSYNC_HINT | FLAG_WINDOW_HIGHDPI);
@@ -195,10 +200,6 @@ void UpdateServer()
 	{
 		LOG("remote address null, cliente no conectado");
 	}
-
-	
-	
-
 }
 
 
@@ -222,7 +223,6 @@ void CreateClient()
 	AppState = EAPPState::CLIENT;
 	//DisplayMessage(true, "Conectando al servidor...");
 	LOG("Cliente conectado " << PORT);
-	
 }
 
 bool directInput = true;
